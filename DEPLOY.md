@@ -74,3 +74,11 @@ skip it if you already seeded the same Neon database locally.
   change.
 - Static admin assets are served via WhiteNoise, so Django's admin panel
   works even with `DEBUG=False`.
+- The frontend build installs dependencies with **Bun** (curl-installed at
+  build time), not npm. npm has a long-standing bug
+  (npm/cli#4828) where it fails to install the platform-specific native
+  binding `rolldown` needs (`@rolldown/binding-linux-x64-gnu`) on Render's
+  Linux build image — even after a clean `rm -rf node_modules
+  package-lock.json && npm install`. Bun resolves optional platform
+  binaries correctly, and the repo already ships a `bun.lock`, so it's the
+  build's install+build tool instead.

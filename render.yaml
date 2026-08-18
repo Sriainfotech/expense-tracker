@@ -38,7 +38,7 @@ services:
     env: node
     rootDir: Expense-Tracker
     plan: free
-    buildCommand: "rm -rf node_modules package-lock.json && npm install && NITRO_PRESET=node-server npm run build"
+    buildCommand: "curl -fsSL https://bun.sh/install | bash && export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && rm -rf node_modules && bun install && NITRO_PRESET=node-server bun run build"
     startCommand: "node .output/server/index.mjs"
     envVars:
       - key: NODE_VERSION
