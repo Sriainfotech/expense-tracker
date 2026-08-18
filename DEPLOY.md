@@ -74,6 +74,8 @@ skip it if you already seeded the same Neon database locally.
   change.
 - Static admin assets are served via WhiteNoise, so Django's admin panel
   works even with `DEBUG=False`.
+- The frontend pins `NODE_VERSION=22.14.0` — this project's Vite version
+  requires Node 20.19+ or 22.12+, newer than Render's own default (20.18.0).
 - The frontend build installs dependencies with **Bun** (curl-installed at
   build time), not npm. npm has a long-standing bug
   (npm/cli#4828) where it fails to install the platform-specific native
