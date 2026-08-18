@@ -1,0 +1,47 @@
+# Render Blueprint — deploys both services from this one repo.
+# In the Render dashboard: New -> Blueprint -> select this repo -> Apply.
+#
+# After the first deploy, go to each service's Environment tab and fill in
+# the variables marked "sync: false" below (Render will prompt for these,
+# they are never stored in this file or the repo):
+#   - expense-tracker-backend  -> DATABASE_URL  (your Neon connection string)
+#
+# If you rename either service below, update the literal URLs referenced in
+# the other service's env vars (DJANGO_ALLOWED_HOSTS / EXTRA_ALLOWED_ORIGINS /
+# VITE_API_BASE_URL) to match — Render's onrender.com URL is derived from the
+# service name.
+
+services:
+  - type: web
+    name: expense-tracker-backend
+    env: python
+    rootDir: Expense-Backend
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "gunicorn ledgerly.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "expense-tracker-backend.onrender.com"
+      - key: EXTRA_ALLOWED_ORIGINS
+        value: "https://expense-tracker-frontend.onrender.com"
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: expense-tracker-frontend
+    env: node
+    rootDir: Expense-Tracker
+    plan: free
+    buildCommand: "npm install && NITRO_PRESET=node-server npm run build"
+    startCommand: "node .output/server/index.mjs"
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.0"
+      - key: VITE_API_BASE_URL
+        value: "https://expense-tracker-backend.onrender.com/api"
