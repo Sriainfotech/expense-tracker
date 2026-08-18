@@ -22,6 +22,8 @@ see the earlier note about `Saf-reen` needing write access).
 
 ## 3. Set the one secret Render will ask for
 
+
+
 Render will prompt for any env var marked `sync: false` in `render.yaml`:
 
 - **`expense-tracker-backend` → `DATABASE_URL`**: paste your Neon connection
