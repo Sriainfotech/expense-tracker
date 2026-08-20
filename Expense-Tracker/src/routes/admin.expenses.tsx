@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PiggyBank, Plus, Receipt, Scale } from "lucide-react";
+import { PiggyBank, Receipt, Scale } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -11,7 +11,6 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { DetailDialog } from "@/components/detail-dialog";
 import { ExpenseFormDialog } from "@/components/expense-form-dialog";
 import { RowActions } from "@/routes/admin.users.$userId";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,17 +46,8 @@ export const Route = createFileRoute("/admin/expenses")({
 });
 
 function AdminExpenses() {
-  const {
-    users,
-    expenses,
-    expenseCategories,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    userName,
-    totals,
-  } = useStore();
-  const standardUsers = users.filter((u) => u.role === "standard_user");
+  const { expenses, expenseCategories, updateExpense, deleteExpense, userName, totals } =
+    useStore();
   const t = totals();
 
   const [search, setSearch] = useState("");
@@ -107,17 +97,6 @@ function AdminExpenses() {
       role="admin"
       title="Expenses"
       subtitle={`${filtered.length} records · ${formatINR(total)} spent`}
-      actions={
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="size-4" />
-          Add Expense
-        </Button>
-      }
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
@@ -249,17 +228,12 @@ function AdminExpenses() {
           setFormOpen(open);
           if (!open) setEditing(null);
         }}
-        users={standardUsers}
         showStatus
         editing={editing}
         onSubmit={(values) => {
-          if (editing) {
-            updateExpense(editing.id, values);
-            toast.success("Expense updated");
-          } else {
-            addExpense(values);
-            toast.success("Expense added and remaining balance recalculated");
-          }
+          if (!editing) return;
+          updateExpense(editing.id, values);
+          toast.success("Expense updated");
           setFormOpen(false);
           setEditing(null);
         }}

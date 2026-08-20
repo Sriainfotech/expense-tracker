@@ -27,7 +27,6 @@ import {
   RECORD_STATUSES,
   type Expense,
   type RecordStatus,
-  type User,
 } from "@/lib/types";
 import { todayISO } from "@/lib/format";
 
@@ -68,7 +67,6 @@ function emptyDraft(userId: string): Draft {
 export function ExpenseFormDialog({
   open,
   onOpenChange,
-  users,
   lockedUserId,
   showStatus,
   editing,
@@ -76,9 +74,9 @@ export function ExpenseFormDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Admin-only: lets admin pick which standard user this expense belongs to. */
-  users?: User[];
-  /** Owner for a newly created expense — always the signed-in user creating it. */
+  /** Owner for a newly created expense — the signed-in user, or the user whose
+   * profile this dialog was opened from. There's no in-form way to pick a
+   * user; add an expense from that user's own page instead. */
   lockedUserId?: string;
   /** Admin-only: lets an existing expense be marked Active/Inactive. */
   showStatus?: boolean;
@@ -144,7 +142,6 @@ export function ExpenseFormDialog({
   function submit() {
     const next: Errors = {};
     const amount = Number(draft.amount);
-    if (users && !draft.userId) next.userId = "User is required.";
     if (!draft.category) next.category = "Expense category is required.";
     if (!draft.amount) next.amount = "Amount is required.";
     else if (!Number.isFinite(amount) || amount <= 0)
@@ -176,23 +173,6 @@ export function ExpenseFormDialog({
         </DialogHeader>
 
         <div className="grid gap-4">
-          {users ? (
-            <Field label="User" error={errors.userId}>
-              <Select value={draft.userId} onValueChange={(v) => set("userId", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.fullName} · {u.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          ) : null}
-
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Expense Category" error={errors.category}>
               {creatingCategory ? (
