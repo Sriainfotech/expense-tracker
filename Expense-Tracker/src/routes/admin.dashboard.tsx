@@ -103,9 +103,9 @@ function AdminDashboard() {
             {recentExpenses.map((exp) => (
               <li key={exp.id} className="flex items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{userName(exp.userId)}</p>
+                  <p className="truncate text-sm font-semibold">{exp.category}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {exp.category} · {formatDate(exp.date)}
+                    {exp.description || "No description"} · {formatDate(exp.date)}
                   </p>
                 </div>
                 <StatusBadge status={exp.status} />

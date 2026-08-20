@@ -39,8 +39,8 @@ function UserDashboard() {
     .filter((i) => i.userId === currentUser.id)
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
-  const myExpenses = expenses
-    .filter((e) => e.userId === currentUser.id)
+  // Expenses are shared/company-wide, not personal.
+  const recentExpenses = [...expenses]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
 
@@ -48,12 +48,7 @@ function UserDashboard() {
     <AppShell
       role="standard_user"
       title={`Welcome back, ${currentUser.fullName.split(" ")[0]}`}
-      subtitle="Remaining Balance = Total Investment − Total Expenses"
-      actions={
-        <Button asChild>
-          <Link to="/user/expenses">Add Expense</Link>
-        </Button>
-      }
+      subtitle="Remaining Balance is the company-wide figure"
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
@@ -66,7 +61,7 @@ function UserDashboard() {
         <SummaryCard
           label="Total Expenses"
           value={formatINR(f.totalExpenses)}
-          hint={`${f.expenseCount} expenses recorded`}
+          hint={`${f.expenseCount} company-wide`}
           icon={Receipt}
           tone="expense"
         />
@@ -108,13 +103,13 @@ function UserDashboard() {
 
         <section className="rounded-xl border border-border bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="text-sm font-bold">My recent expenses</h2>
+            <h2 className="text-sm font-bold">Recent expenses</h2>
             <Button asChild variant="ghost" size="sm">
               <Link to="/user/expenses">View all</Link>
             </Button>
           </div>
           <ul className="divide-y divide-border">
-            {myExpenses.map((exp) => (
+            {recentExpenses.map((exp) => (
               <li key={exp.id} className="flex items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{exp.category}</p>
@@ -126,7 +121,7 @@ function UserDashboard() {
                 <p className="text-sm font-bold text-warning">−{formatINR(exp.amount)}</p>
               </li>
             ))}
-            {myExpenses.length === 0 ? (
+            {recentExpenses.length === 0 ? (
               <li className="px-5 py-8 text-center text-sm text-muted-foreground">
                 No expenses yet.
               </li>

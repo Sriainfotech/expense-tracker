@@ -39,11 +39,16 @@ class Investment(models.Model):
         return f"Investment #{self.pk} - {self.user.full_name} - {self.amount}"
 
 class Expense(models.Model):
+    """
+    Expenses are shared/company-wide: all invested capital sits in one pool,
+    so an expense isn't attributed to whichever user happened to record it —
+    it's simply deducted from the overall investment total.
+    """
+
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         INACTIVE = "inactive", "Inactive"
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="expenses")
     category = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     amount = models.DecimalField(max_digits=14, decimal_places=2)
@@ -57,4 +62,4 @@ class Expense(models.Model):
         ordering = ["-expense_date", "-created_at"]
 
     def __str__(self):
-        return f"Expense #{self.pk} - {self.user.full_name} - {self.amount}"
+        return f"Expense #{self.pk} - {self.category} - {self.amount}"

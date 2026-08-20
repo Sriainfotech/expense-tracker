@@ -33,13 +33,15 @@ ravi = upsert_user("Ravi", "ravi@example.com", "ravi12345", User.Role.STANDARD)
 
 if not Investment.objects.filter(user=kavya).exists():
     Investment.objects.create(user=kavya, investor_source="Company Capital", amount=50000, investment_date=date(2026, 8, 1), description="Initial capital", status="active")
-if not Expense.objects.filter(user=kavya).exists():
-    Expense.objects.create(user=kavya, category="Travel", description="Business travel", amount=10000, expense_date=date(2026, 8, 13), payment_method="UPI", status="active")
 
 if not Investment.objects.filter(user=ravi).exists():
     Investment.objects.create(user=ravi, investor_source="Personal Capital", amount=75000, investment_date=date(2026, 8, 2), description="Initial capital", status="active")
-if not Expense.objects.filter(user=ravi).exists():
-    Expense.objects.create(user=ravi, category="Office", description="Office supplies", amount=20000, expense_date=date(2026, 8, 12), payment_method="Card", status="active")
+
+# Expenses are shared/company-wide — not tied to any particular user.
+if not Expense.objects.filter(category="Travel").exists():
+    Expense.objects.create(category="Travel", description="Business travel", amount=10000, expense_date=date(2026, 8, 13), payment_method="UPI", status="active")
+if not Expense.objects.filter(category="Office").exists():
+    Expense.objects.create(category="Office", description="Office supplies", amount=20000, expense_date=date(2026, 8, 12), payment_method="Card", status="active")
 
 print("Demo data created.")
 print("Admin: admin@example.com / admin123")

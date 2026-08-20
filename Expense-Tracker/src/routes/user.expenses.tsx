@@ -23,15 +23,15 @@ import type { Expense } from "@/lib/types";
 export const Route = createFileRoute("/user/expenses")({
   head: () => ({
     meta: [
-      { title: "My expenses · Ledgerly" },
+      { title: "Expenses · Ledgerly" },
       {
         name: "description",
-        content: "Read-only history of the expenses recorded against your account.",
+        content: "Read-only history of the company-wide shared expenses.",
       },
-      { property: "og:title", content: "My expenses · Ledgerly" },
+      { property: "og:title", content: "Expenses · Ledgerly" },
       {
         property: "og:description",
-        content: "Read-only history of the expenses recorded against your account.",
+        content: "Read-only history of the company-wide shared expenses.",
       },
     ],
   }),
@@ -49,20 +49,22 @@ function UserExpenses() {
   const [page, setPage] = useState(1);
   const [viewing, setViewing] = useState<Expense | null>(null);
 
-  const userId = currentUser?.id ?? "";
+  // Expenses are shared/company-wide — everyone sees the same list.
   const filtered = useMemo(
     () =>
       expenses
-        .filter((exp) => exp.userId === userId)
         .filter((exp) => {
           const q = search.trim().toLowerCase();
           const matchesQuery =
-            !q || exp.description.toLowerCase().includes(q) || exp.id.toLowerCase().includes(q);
+            !q ||
+            exp.category.toLowerCase().includes(q) ||
+            exp.description.toLowerCase().includes(q) ||
+            exp.id.toLowerCase().includes(q);
           const matchesCategory = categoryFilter === "all" || exp.category === categoryFilter;
           return matchesQuery && matchesCategory;
         })
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [expenses, userId, search, categoryFilter],
+    [expenses, search, categoryFilter],
   );
 
   const { rows, pageCount } = paginate(filtered, page);
@@ -73,8 +75,8 @@ function UserExpenses() {
   return (
     <AppShell
       role="standard_user"
-      title="My Expenses"
-      subtitle={`${formatINR(f.totalExpenses)} spent · ${formatINR(f.remainingBalance)} remaining`}
+      title="Expenses"
+      subtitle={`${formatINR(f.totalExpenses)} company-wide · ${formatINR(f.remainingBalance)} remaining`}
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
@@ -105,7 +107,7 @@ function UserExpenses() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search expenses"
+            placeholder="Search by category, description or ID"
             className="max-w-xs"
           />
           <Select
@@ -180,7 +182,7 @@ function UserExpenses() {
         open={viewing !== null}
         onOpenChange={(open) => !open && setViewing(null)}
         title="Expense details"
-        description="Your expense record"
+        description="Shared company expense"
         rows={
           viewing
             ? [

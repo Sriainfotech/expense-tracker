@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PiggyBank, Receipt, Scale } from "lucide-react";
+import { PiggyBank, Plus, Receipt, Scale } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -11,6 +11,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { DetailDialog } from "@/components/detail-dialog";
 import { ExpenseFormDialog } from "@/components/expense-form-dialog";
 import { RowActions } from "@/routes/admin.users.$userId";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,12 +30,12 @@ export const Route = createFileRoute("/admin/expenses")({
       { title: "Expenses · Ledgerly" },
       {
         name: "description",
-        content: "Review and manage every expense that reduces user remaining balances.",
+        content: "Review and manage every shared expense that reduces the company-wide remaining balance.",
       },
       { property: "og:title", content: "Expenses · Ledgerly" },
       {
         property: "og:description",
-        content: "Review and manage every expense that reduces user remaining balances.",
+        content: "Review and manage every shared expense that reduces the company-wide remaining balance.",
       },
     ],
   }),
@@ -46,7 +47,7 @@ export const Route = createFileRoute("/admin/expenses")({
 });
 
 function AdminExpenses() {
-  const { expenses, expenseCategories, updateExpense, deleteExpense, userName, totals } =
+  const { expenses, expenseCategories, addExpense, updateExpense, deleteExpense, totals } =
     useStore();
   const t = totals();
 
@@ -97,6 +98,17 @@ function AdminExpenses() {
       role="admin"
       title="Expenses"
       subtitle={`${filtered.length} records · ${formatINR(total)} spent`}
+      actions={
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setFormOpen(true);
+          }}
+        >
+          <Plus className="size-4" />
+          Add Expense
+        </Button>
+      }
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
@@ -231,9 +243,13 @@ function AdminExpenses() {
         showStatus
         editing={editing}
         onSubmit={(values) => {
-          if (!editing) return;
-          updateExpense(editing.id, values);
-          toast.success("Expense updated");
+          if (editing) {
+            updateExpense(editing.id, values);
+            toast.success("Expense updated");
+          } else {
+            addExpense(values);
+            toast.success("Expense added and remaining balance recalculated");
+          }
           setFormOpen(false);
           setEditing(null);
         }}
@@ -243,12 +259,11 @@ function AdminExpenses() {
         open={viewing !== null}
         onOpenChange={(open) => !open && setViewing(null)}
         title="Expense details"
-        description={viewing ? userName(viewing.userId) : ""}
+        description={viewing ? viewing.category : ""}
         rows={
           viewing
             ? [
                 { label: "Expense ID", value: viewing.id },
-                { label: "User", value: userName(viewing.userId) },
                 { label: "Category", value: viewing.category },
                 { label: "Description", value: viewing.description || "—" },
                 { label: "Amount", value: formatINR(viewing.amount) },
@@ -265,7 +280,7 @@ function AdminExpenses() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete this expense?"
-        description="The user's remaining balance will increase accordingly."
+        description="The overall remaining balance will increase accordingly."
         onConfirm={() => {
           if (deleteTarget) deleteExpense(deleteTarget.id);
           setDeleteTarget(null);

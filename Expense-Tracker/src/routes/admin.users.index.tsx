@@ -98,7 +98,7 @@ function AdminUsers() {
     <AppShell
       role="admin"
       title="User Management"
-      subtitle="Standard users see only their own investments, expenses and balance."
+      subtitle="Standard users see their own investments, the shared expenses, and the company-wide balance."
       actions={
         <Button
           onClick={() => {
@@ -149,8 +149,8 @@ function AdminUsers() {
                 <th className="px-4 py-3 font-semibold">Email</th>
                 <th className="px-4 py-3 font-semibold">Role</th>
                 <th className="px-4 py-3 text-right font-semibold">Total Investment</th>
-                <th className="px-4 py-3 text-right font-semibold">Total Expenses</th>
-                <th className="px-4 py-3 text-right font-semibold">Remaining</th>
+                <th className="px-4 py-3 text-right font-semibold">Shared Expenses</th>
+                <th className="px-4 py-3 text-right font-semibold">Remaining (shared)</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Created At</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
@@ -243,7 +243,7 @@ function AdminUsers() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title={`Delete ${deleteTarget?.fullName ?? "user"}?`}
-        description="Their investments and expenses will also be removed and totals recalculated."
+        description="Their investments will also be removed and totals recalculated. Shared expenses are unaffected."
         onConfirm={async () => {
   if (!deleteTarget) return;
 

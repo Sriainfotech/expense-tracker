@@ -32,9 +32,10 @@ export interface Investment {
   createdAt: string;
 }
 
+/** Expenses are shared/company-wide — all invested capital sits in one
+ * pool, so an expense isn't tied to whichever user recorded it. */
 export interface Expense {
   id: string;
-  userId: string;
   category: string;
   description: string;
   amount: number;

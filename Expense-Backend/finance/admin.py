@@ -14,6 +14,6 @@ class InvestmentAdmin(admin.ModelAdmin):
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "category", "amount", "expense_date", "payment_method", "status", "created_at")
+    list_display = ("id", "category", "amount", "expense_date", "payment_method", "status", "created_at")
     list_filter = ("status", "category", "payment_method", "expense_date")
-    search_fields = ("user__full_name", "user__email", "category", "description")
+    search_fields = ("category", "description")

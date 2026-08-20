@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Eye, Pencil, PiggyBank, Plus, Receipt, Scale, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, PiggyBank, Receipt, Scale, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -9,11 +9,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { DetailDialog } from "@/components/detail-dialog";
 import { InvestmentFormDialog } from "@/components/investment-form-dialog";
-import { ExpenseFormDialog } from "@/components/expense-form-dialog";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
-import type { Expense, Investment } from "@/lib/types";
+import type { Investment } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/users/$userId")({
   head: () => ({
@@ -21,12 +20,12 @@ export const Route = createFileRoute("/admin/users/$userId")({
       { title: "User financial details · Ledgerly" },
       {
         name: "description",
-        content: "Full investment and expense history for a single user with live remaining balance.",
+        content: "Investment history for a single user, alongside the company-wide remaining balance.",
       },
       { property: "og:title", content: "User financial details · Ledgerly" },
       {
         property: "og:description",
-        content: "Full investment and expense history for a single user with live remaining balance.",
+        content: "Investment history for a single user, alongside the company-wide remaining balance.",
       },
     ],
   }),
@@ -39,26 +38,12 @@ export const Route = createFileRoute("/admin/users/$userId")({
 
 function UserDetail() {
   const { userId } = useParams({ from: "/admin/users/$userId" });
-  const {
-    users,
-    investments,
-    expenses,
-    financialsFor,
-    updateInvestment,
-    deleteInvestment,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-  } = useStore();
+  const { users, investments, financialsFor, updateInvestment, deleteInvestment } = useStore();
 
   const user = users.find((u) => u.id === userId);
   const [editInvestment, setEditInvestment] = useState<Investment | null>(null);
   const [viewInvestment, setViewInvestment] = useState<Investment | null>(null);
   const [deleteInvestmentTarget, setDeleteInvestmentTarget] = useState<Investment | null>(null);
-  const [expenseFormOpen, setExpenseFormOpen] = useState(false);
-  const [editExpense, setEditExpense] = useState<Expense | null>(null);
-  const [viewExpense, setViewExpense] = useState<Expense | null>(null);
-  const [deleteExpenseTarget, setDeleteExpenseTarget] = useState<Expense | null>(null);
 
   if (!user) {
     return (
@@ -77,15 +62,12 @@ function UserDetail() {
   const userInvestments = investments
     .filter((i) => i.userId === user.id)
     .sort((a, b) => b.date.localeCompare(a.date));
-  const userExpenses = expenses
-    .filter((e) => e.userId === user.id)
-    .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <AppShell
       role="admin"
       title={user.fullName}
-      subtitle={`${user.email} · Remaining Balance = Total Investment − Total Expenses`}
+      subtitle={`${user.email} · Remaining Balance is the company-wide figure`}
       actions={
         <Button asChild variant="outline">
           <Link to="/admin/users">
@@ -106,14 +88,14 @@ function UserDetail() {
         <SummaryCard
           label="Total Expenses"
           value={formatINR(f.totalExpenses)}
-          hint={`${f.expenseCount} expenses`}
+          hint={`${f.expenseCount} company-wide`}
           icon={Receipt}
           tone="expense"
         />
         <SummaryCard
           label="Remaining Balance"
           value={formatINR(f.remainingBalance)}
-          hint="Calculated automatically"
+          hint="Company-wide figure"
           icon={Scale}
           tone="balance"
         />
@@ -170,74 +152,6 @@ function UserDetail() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card shadow-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-sm font-bold">Expense History</h2>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditExpense(null);
-              setExpenseFormOpen(true);
-            }}
-          >
-            <Plus className="size-4" />
-            Add Expense
-          </Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-sm">
-            <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Expense ID</th>
-                <th className="px-4 py-3 font-semibold">Category</th>
-                <th className="px-4 py-3 font-semibold">Description</th>
-                <th className="px-4 py-3 text-right font-semibold">Amount</th>
-                <th className="px-4 py-3 font-semibold">Date</th>
-                <th className="px-4 py-3 font-semibold">Payment Method</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Created At</th>
-                <th className="px-4 py-3 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {userExpenses.map((exp) => (
-                <tr key={exp.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-mono text-xs">{exp.id}</td>
-                  <td className="px-4 py-3">{exp.category}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{exp.description || "—"}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-warning">
-                    {formatINR(exp.amount)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(exp.date)}</td>
-                  <td className="px-4 py-3">{exp.paymentMethod}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={exp.status} />
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(exp.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <RowActions
-                      onView={() => setViewExpense(exp)}
-                      onEdit={() => {
-                        setEditExpense(exp);
-                        setExpenseFormOpen(true);
-                      }}
-                      onDelete={() => setDeleteExpenseTarget(exp)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {userExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
-                    No expenses recorded for this user.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
       <InvestmentFormDialog
         open={editInvestment !== null}
         onOpenChange={(open) => !open && setEditInvestment(null)}
@@ -247,28 +161,6 @@ function UserDetail() {
           if (editInvestment) updateInvestment(editInvestment.id, values);
           setEditInvestment(null);
           toast.success("Investment updated");
-        }}
-      />
-
-      <ExpenseFormDialog
-        open={expenseFormOpen}
-        onOpenChange={(open) => {
-          setExpenseFormOpen(open);
-          if (!open) setEditExpense(null);
-        }}
-        lockedUserId={user.id}
-        showStatus
-        editing={editExpense}
-        onSubmit={(values) => {
-          if (editExpense) {
-            updateExpense(editExpense.id, values);
-            toast.success("Expense updated");
-          } else {
-            addExpense({ ...values, userId: user.id });
-            toast.success("Expense added and remaining balance recalculated");
-          }
-          setExpenseFormOpen(false);
-          setEditExpense(null);
         }}
       />
 
@@ -292,27 +184,6 @@ function UserDetail() {
         }
       />
 
-      <DetailDialog
-        open={viewExpense !== null}
-        onOpenChange={(open) => !open && setViewExpense(null)}
-        title="Expense details"
-        description={`Belongs to ${user.fullName}`}
-        rows={
-          viewExpense
-            ? [
-                { label: "Expense ID", value: viewExpense.id },
-                { label: "Category", value: viewExpense.category },
-                { label: "Description", value: viewExpense.description || "—" },
-                { label: "Amount", value: formatINR(viewExpense.amount) },
-                { label: "Date", value: formatDate(viewExpense.date) },
-                { label: "Payment Method", value: viewExpense.paymentMethod },
-                { label: "Status", value: viewExpense.status },
-                { label: "Created At", value: formatDate(viewExpense.createdAt) },
-              ]
-            : []
-        }
-      />
-
       <ConfirmDelete
         open={deleteInvestmentTarget !== null}
         onOpenChange={(open) => !open && setDeleteInvestmentTarget(null)}
@@ -324,16 +195,6 @@ function UserDetail() {
         }}
       />
 
-      <ConfirmDelete
-        open={deleteExpenseTarget !== null}
-        onOpenChange={(open) => !open && setDeleteExpenseTarget(null)}
-        title="Delete this expense?"
-        onConfirm={() => {
-          if (deleteExpenseTarget) deleteExpense(deleteExpenseTarget.id);
-          setDeleteExpenseTarget(null);
-          toast.success("Expense deleted");
-        }}
-      />
     </AppShell>
   );
 }

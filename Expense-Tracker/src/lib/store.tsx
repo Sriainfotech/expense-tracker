@@ -23,6 +23,10 @@ interface State {
   investments: Investment[];
   expenses: Expense[];
   expenseCategories: string[];
+  /** Company-wide remaining balance (overall investment − overall shared
+   * expenses) — the same number for every user, fetched from the backend
+   * since a standard user's local `investments` only contains their own. */
+  overallRemainingBalance: number;
 }
 
 interface LoginResult {
@@ -133,7 +137,6 @@ function mapInvestment(data: any): Investment {
 function mapExpense(data: any): Expense {
   return {
     id: String(data.id),
-    userId: String(data.user),
     category: data.category,
     description: data.description ?? "",
     amount: Number(data.amount),
@@ -291,9 +294,8 @@ function mapInvestmentPatchToBackend(
 
 function mapExpenseToBackend(
   input: Omit<Expense, "id" | "createdAt">,
-  isAdmin: boolean,
 ) {
-  const payload: Record<string, unknown> = {
+  return {
     category: input.category,
     description: input.description,
     amount: input.amount,
@@ -301,27 +303,12 @@ function mapExpenseToBackend(
     payment_method: input.paymentMethod,
     status: input.status.toLowerCase(),
   };
-
-  /*
-   * Admin can specify a user.
-   * Standard users must NOT send user.
-   * Django associates the expense with request.user.
-   */
-  if (isAdmin) {
-    payload["user"] = Number(input.userId);
-  }
-
-  return payload;
 }
 
 function mapExpensePatchToBackend(
   patch: Partial<Omit<Expense, "id">>,
 ) {
   const result: Record<string, unknown> = {};
-
-  if (patch.userId !== undefined) {
-    result["user"] = Number(patch.userId);
-  }
 
   if (patch.category !== undefined) {
     result["category"] = patch.category;
@@ -360,6 +347,7 @@ export function StoreProvider({
     investments: [],
     expenses: [],
     expenseCategories: [],
+    overallRemainingBalance: 0,
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -394,12 +382,13 @@ export function StoreProvider({
          * Standard user can access their own investments/expenses.
          */
         if (user.role === "admin") {
-          const [usersResponse, investmentsResponse, expensesResponse, categoriesResponse] =
+          const [usersResponse, investmentsResponse, expensesResponse, categoriesResponse, balanceResponse] =
             await Promise.all([
               api.get("/users/"),
               api.get("/investments/"),
               api.get("/expenses/"),
               api.get("/expense-categories/"),
+              api.get("/balance/"),
             ]);
 
           if (cancelled) return;
@@ -415,13 +404,15 @@ export function StoreProvider({
             expenseCategories: extractResults(
               categoriesResponse.data,
             ).map(mapExpenseCategory),
+            overallRemainingBalance: Number(balanceResponse.data.remaining_balance) || 0,
           });
         } else {
-          const [investmentsResponse, expensesResponse, categoriesResponse] =
+          const [investmentsResponse, expensesResponse, categoriesResponse, balanceResponse] =
             await Promise.all([
               api.get("/investments/"),
               api.get("/expenses/"),
               api.get("/expense-categories/"),
+              api.get("/balance/"),
             ]);
 
           if (cancelled) return;
@@ -437,6 +428,7 @@ export function StoreProvider({
             expenseCategories: extractResults(
               categoriesResponse.data,
             ).map(mapExpenseCategory),
+            overallRemainingBalance: Number(balanceResponse.data.remaining_balance) || 0,
           });
         }
       } catch (error) {
@@ -452,6 +444,7 @@ export function StoreProvider({
             investments: [],
             expenses: [],
             expenseCategories: [],
+            overallRemainingBalance: 0,
           });
         }
       } finally {
@@ -501,12 +494,13 @@ export function StoreProvider({
 
     // Load data after login
     if (user.role === "admin") {
-      const [usersResponse, investmentsResponse, expensesResponse, categoriesResponse] =
+      const [usersResponse, investmentsResponse, expensesResponse, categoriesResponse, balanceResponse] =
         await Promise.all([
           api.get("/users/"),
           api.get("/investments/"),
           api.get("/expenses/"),
           api.get("/expense-categories/"),
+          api.get("/balance/"),
         ]);
 
       setState({
@@ -520,13 +514,15 @@ export function StoreProvider({
         expenseCategories: extractResults(
           categoriesResponse.data,
         ).map(mapExpenseCategory),
+        overallRemainingBalance: Number(balanceResponse.data.remaining_balance) || 0,
       });
     } else {
-      const [investmentsResponse, expensesResponse, categoriesResponse] =
+      const [investmentsResponse, expensesResponse, categoriesResponse, balanceResponse] =
         await Promise.all([
           api.get("/investments/"),
           api.get("/expenses/"),
           api.get("/expense-categories/"),
+          api.get("/balance/"),
         ]);
 
       setState({
@@ -540,6 +536,7 @@ export function StoreProvider({
         expenseCategories: extractResults(
           categoriesResponse.data,
         ).map(mapExpenseCategory),
+        overallRemainingBalance: Number(balanceResponse.data.remaining_balance) || 0,
       });
     }
 
@@ -571,6 +568,7 @@ export function StoreProvider({
       investments: [],
       expenses: [],
       expenseCategories: [],
+      overallRemainingBalance: 0,
     });
   }, []);
 
@@ -654,7 +652,6 @@ export function StoreProvider({
         ...prev,
         users: prev.users.filter((u) => u.id !== id),
         investments: prev.investments.filter((i) => i.userId !== id),
-        expenses: prev.expenses.filter((e) => e.userId !== id),
       }));
     } catch (error) {
       console.error("Delete user failed:", error);
@@ -733,11 +730,9 @@ export function StoreProvider({
   const addExpense = useCallback<StoreValue["addExpense"]>(
     async (input) => {
       try {
-        const isAdmin = currentUser?.role === "admin";
-
         const response = await api.post(
           "/expenses/",
-          mapExpenseToBackend(input, isAdmin),
+          mapExpenseToBackend(input),
         );
 
         const expense = mapExpense(response.data);
@@ -750,7 +745,7 @@ export function StoreProvider({
         throw new Error(getErrorMessage(error));
       }
     },
-    [currentUser],
+    [],
   );
 
   const updateExpense = useCallback<
@@ -832,9 +827,8 @@ export function StoreProvider({
         (investment) => investment.userId === userId && investment.status === "Active",
       );
 
-      const expenses = state.expenses.filter(
-        (expense) => expense.userId === userId && expense.status === "Active",
-      );
+      // Expenses are shared/company-wide — not filtered by user.
+      const expenses = state.expenses.filter((expense) => expense.status === "Active");
 
       const totalInvestment = investments.reduce(
         (sum, investment) => sum + investment.amount,
@@ -849,12 +843,12 @@ export function StoreProvider({
       return {
         totalInvestment,
         totalExpenses,
-        remainingBalance: totalInvestment - totalExpenses,
+        remainingBalance: state.overallRemainingBalance,
         investmentCount: investments.length,
         expenseCount: expenses.length,
       };
     },
-    [state.investments, state.expenses],
+    [state.investments, state.expenses, state.overallRemainingBalance],
   );
 
   const totals = useCallback<StoreValue["totals"]>(() => {
@@ -874,7 +868,7 @@ export function StoreProvider({
     return {
       totalInvestment,
       totalExpenses,
-      remainingBalance: totalInvestment - totalExpenses,
+      remainingBalance: state.overallRemainingBalance,
       investmentCount: activeInvestments.length,
       expenseCount: activeExpenses.length,
       userCount: state.users.length,

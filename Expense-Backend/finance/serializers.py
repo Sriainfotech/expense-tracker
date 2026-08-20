@@ -46,22 +46,13 @@ class InvestmentSerializer(serializers.ModelSerializer):
         return amount
 
 class ExpenseSerializer(serializers.ModelSerializer):
-    user_detail = UserMiniSerializer(source="user", read_only=True)
-
     class Meta:
         model = Expense
         fields = [
-            "id", "user", "user_detail", "category", "description", "amount",
+            "id", "category", "description", "amount",
             "expense_date", "payment_method", "status", "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "user_detail"]
-
-    def validate_user(self, user):
-        if user.role != User.Role.STANDARD:
-            raise serializers.ValidationError("Expense must belong to a Standard User.")
-        if user.status != User.Status.ACTIVE:
-            raise serializers.ValidationError("Cannot create financial records for an inactive user.")
-        return user
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def validate_category(self, value):
         if not value.strip():

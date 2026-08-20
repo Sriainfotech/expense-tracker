@@ -31,7 +31,6 @@ import {
 import { todayISO } from "@/lib/format";
 
 export interface ExpenseFormValues {
-  userId: string;
   category: string;
   description: string;
   amount: number;
@@ -43,7 +42,6 @@ export interface ExpenseFormValues {
 type Errors = Partial<Record<keyof ExpenseFormValues, string>>;
 
 interface Draft {
-  userId: string;
   category: string;
   description: string;
   amount: string;
@@ -52,9 +50,8 @@ interface Draft {
   status: RecordStatus;
 }
 
-function emptyDraft(userId: string): Draft {
+function emptyDraft(): Draft {
   return {
-    userId,
     category: "",
     description: "",
     amount: "",
@@ -67,24 +64,19 @@ function emptyDraft(userId: string): Draft {
 export function ExpenseFormDialog({
   open,
   onOpenChange,
-  lockedUserId,
   showStatus,
   editing,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Owner for a newly created expense — the signed-in user, or the user whose
-   * profile this dialog was opened from. There's no in-form way to pick a
-   * user; add an expense from that user's own page instead. */
-  lockedUserId?: string;
   /** Admin-only: lets an existing expense be marked Active/Inactive. */
   showStatus?: boolean;
   editing?: Expense | null;
   onSubmit: (values: ExpenseFormValues) => void;
 }) {
   const { expenseCategories, addExpenseCategory } = useStore();
-  const [draft, setDraft] = useState<Draft>(emptyDraft(lockedUserId ?? ""));
+  const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [errors, setErrors] = useState<Errors>({});
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -98,7 +90,6 @@ export function ExpenseFormDialog({
     setDraft(
       editing
         ? {
-            userId: editing.userId,
             category: editing.category,
             description: editing.description,
             amount: String(editing.amount),
@@ -106,9 +97,9 @@ export function ExpenseFormDialog({
             paymentMethod: editing.paymentMethod,
             status: editing.status,
           }
-        : emptyDraft(lockedUserId ?? ""),
+        : emptyDraft(),
     );
-  }, [open, editing, lockedUserId]);
+  }, [open, editing]);
 
   // The category on an existing expense might not be in the shared catalog
   // yet (e.g. seeded before the catalog existed) — keep it selectable.
@@ -152,7 +143,6 @@ export function ExpenseFormDialog({
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     onSubmit({
-      userId: draft.userId,
       category: draft.category,
       description: draft.description.trim(),
       amount,
@@ -168,7 +158,7 @@ export function ExpenseFormDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Edit expense" : "Add expense"}</DialogTitle>
           <DialogDescription>
-            Expenses are deducted from the owner's investment to compute their remaining balance.
+            Expenses are shared — the amount is deducted from the overall investment pool.
           </DialogDescription>
         </DialogHeader>
 

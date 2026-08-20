@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from accounts.models import User
 from accounts.permissions import IsAdminRole, IsStandardUser
 from .models import Investment, Expense, ExpenseCategory
-from .permissions import IsAdminOrReadOnlyOwner
+from .permissions import IsAdminOrReadOnlyOwner, IsAdminOrReadOnly
 from .serializers import (
     InvestmentSerializer, ExpenseSerializer,
     UserMiniSerializer, ExpenseCategorySerializer,
@@ -75,18 +75,20 @@ class InvestmentViewSet(viewsets.ModelViewSet):
         })
 
 class ExpenseViewSet(viewsets.ModelViewSet):
+    """
+    Expenses are shared/company-wide (see the Expense model docstring) — every
+    authenticated user can list/view the full expense history; only admin can
+    create, update, or delete.
+    """
     serializer_class = ExpenseSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnlyOwner]
-    filterset_fields = ["user", "category", "payment_method", "status", "expense_date"]
-    search_fields = ["category", "description", "payment_method", "user__full_name", "user__email"]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filterset_fields = ["category", "payment_method", "status", "expense_date"]
+    search_fields = ["category", "description", "payment_method"]
     ordering_fields = ["amount", "expense_date", "created_at"]
     pagination_class = None
 
     def get_queryset(self):
-        qs = Expense.objects.select_related("user")
-        if self.request.user.role == User.Role.ADMIN:
-            return qs.all()
-        return qs.filter(user=self.request.user)
+        return Expense.objects.all()
 
     def create(self, request, *args, **kwargs):
         if request.user.role != User.Role.ADMIN:
