@@ -190,7 +190,7 @@ function AdminExpenses() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full min-w-[1220px] text-sm">
             <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-semibold">Expense ID</th>
@@ -198,6 +198,7 @@ function AdminExpenses() {
                 <th className="px-4 py-3 font-semibold">Description</th>
                 <th className="px-4 py-3 text-right font-semibold">Amount</th>
                 <th className="px-4 py-3 font-semibold">Date</th>
+                <th className="px-4 py-3 font-semibold">Payment Method</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 text-right font-semibold">Actions</th>
               </tr>
@@ -212,6 +213,7 @@ function AdminExpenses() {
                     {formatINR(exp.amount)}
                   </td>
                   <td className="px-4 py-3">{formatDate(exp.date)}</td>
+                  <td className="px-4 py-3">{exp.paymentMethod}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={exp.status} />
                   </td>
@@ -229,7 +231,7 @@ function AdminExpenses() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                     No expenses match your filters.
                   </td>
                 </tr>
