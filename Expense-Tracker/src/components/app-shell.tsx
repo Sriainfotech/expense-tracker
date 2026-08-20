@@ -148,9 +148,10 @@ export function AppShell({
             onClick={handleLogout}
             aria-label="Sign out"
             title="Sign out"
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut className="size-4" />
+            <span>Logout</span>
           </button>
         </nav>
 

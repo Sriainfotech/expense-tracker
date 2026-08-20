@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   LineChart,
+  Loader2,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -62,6 +63,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!ready || !currentUser) return;
@@ -80,22 +82,27 @@ async function handleSubmit(e: React.FormEvent) {
     return;
   }
 
-  const result = await login(identifier, password);
+  setSubmitting(true);
+  try {
+    const result = await login(identifier, password);
 
-  if (!result.ok) {
-    setError(result.error);
-    return;
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    toast.success(`Welcome back, ${result.user.fullName.split(" ")[0]}`);
+
+    navigate({
+      to:
+        result.user.role === "admin"
+          ? "/admin/dashboard"
+          : "/user/dashboard",
+      replace: true,
+    });
+  } finally {
+    setSubmitting(false);
   }
-
-  toast.success(`Welcome back, ${result.user.fullName.split(" ")[0]}`);
-
-  navigate({
-    to:
-      result.user.role === "admin"
-        ? "/admin/dashboard"
-        : "/user/dashboard",
-    replace: true,
-  });
 }
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -218,9 +225,18 @@ async function handleSubmit(e: React.FormEvent) {
               </p>
             ) : null}
 
-            <Button type="submit" className="h-11 w-full text-base">
-              Sign in
-              <ArrowRight className="size-4.5" />
+            <Button type="submit" disabled={submitting} className="h-11 w-full text-base">
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4.5 animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="size-4.5" />
+                </>
+              )}
             </Button>
           </form>
         </div>
