@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/field";
+import { ConfirmAction } from "@/components/confirm-action";
 import {
   Select,
   SelectContent,
@@ -64,6 +65,7 @@ export function InvestmentFormDialog({
     status: "Active",
   });
   const [errors, setErrors] = useState<Errors>({});
+  const [pendingSubmit, setPendingSubmit] = useState<InvestmentFormValues | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -106,23 +108,31 @@ export function InvestmentFormDialog({
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
-    onSubmit({
+
+    const values: InvestmentFormValues = {
       userId: draft.userId,
       source: draft.source.trim(),
       amount,
       date: draft.date,
       description: draft.description.trim(),
       status: draft.status,
-    });
+    };
+
+    if (editing) {
+      setPendingSubmit(values);
+    } else {
+      onSubmit(values);
+    }
   }
 
   return (
+    <Fragment>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit investment" : "Add investment"}</DialogTitle>
           <DialogDescription>
-            Every investment belongs to exactly one user and increases their remaining balance.
+            Every investment belongs to one user's contribution and adds to the shared capital pool.
           </DialogDescription>
         </DialogHeader>
 
@@ -194,5 +204,18 @@ export function InvestmentFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ConfirmAction
+      open={pendingSubmit !== null}
+      onOpenChange={(open) => !open && setPendingSubmit(null)}
+      title="Save these changes?"
+      description="This investment will be updated and remaining balances recalculated."
+      confirmLabel="Save changes"
+      onConfirm={() => {
+        if (pendingSubmit) onSubmit(pendingSubmit);
+        setPendingSubmit(null);
+      }}
+    />
+    </Fragment>
   );
 }

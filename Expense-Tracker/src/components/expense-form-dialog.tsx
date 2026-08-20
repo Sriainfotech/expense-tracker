@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/field";
+import { ConfirmAction } from "@/components/confirm-action";
 import {
   Select,
   SelectContent,
@@ -81,6 +82,7 @@ export function ExpenseFormDialog({
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<ExpenseFormValues | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -142,17 +144,26 @@ export function ExpenseFormDialog({
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
-    onSubmit({
+
+    const values: ExpenseFormValues = {
       category: draft.category,
       description: draft.description.trim(),
       amount,
       date: draft.date,
       paymentMethod: draft.paymentMethod,
       status: draft.status,
-    });
+    };
+
+    if (editing) {
+      // Confirm before overwriting an existing shared expense.
+      setPendingSubmit(values);
+    } else {
+      onSubmit(values);
+    }
   }
 
   return (
+    <Fragment>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -298,5 +309,18 @@ export function ExpenseFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ConfirmAction
+      open={pendingSubmit !== null}
+      onOpenChange={(open) => !open && setPendingSubmit(null)}
+      title="Save these changes?"
+      description="This shared expense will update for everyone and the company-wide remaining balance will be recalculated."
+      confirmLabel="Save changes"
+      onConfirm={() => {
+        if (pendingSubmit) onSubmit(pendingSubmit);
+        setPendingSubmit(null);
+      }}
+    />
+    </Fragment>
   );
 }

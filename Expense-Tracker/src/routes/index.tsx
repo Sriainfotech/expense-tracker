@@ -2,11 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
-  BarChart3,
   Eye,
   EyeOff,
-  LineChart,
+  Layers,
   Loader2,
+  Scale,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
@@ -24,12 +24,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sign in to Ledgerly to track investments, manage expenses against remaining balance and see where the money went.",
+          "Sign in to Ledgerly to record who invested what, track shared expenses against one capital pool, and see the live remaining balance.",
       },
       { property: "og:title", content: "Sign in · Ledgerly Capital Control Platform" },
       {
         property: "og:description",
-        content: "Every expense, tied to real capital. Live investment and expense control.",
+        content: "One shared capital pool. Every expense deducted from it, live.",
       },
     ],
   }),
@@ -38,19 +38,25 @@ export const Route = createFileRoute("/")({
 
 const features = [
   {
-    icon: LineChart,
-    title: "Live balance engine",
-    description: "Investments − Expenses, recalculated instantly.",
+    icon: Wallet,
+    title: "One shared capital pool",
+    description: "Every user's investment adds to it; every expense is deducted from it.",
   },
   {
-    icon: BarChart3,
-    title: "Board-ready reporting",
-    description: "Trends, categories and financial summaries in one place.",
+    icon: Layers,
+    title: "Categorized expenses",
+    description: "Log expenses against custom categories, editable inline as you go.",
+  },
+  {
+    icon: Scale,
+    title: "Live remaining balance",
+    description: "Total investment minus total expenses, recalculated the instant either changes.",
   },
   {
     icon: ShieldCheck,
-    title: "Role-based control",
-    description: "Admins manage users. Users see only their own data.",
+    title: "Role-based access",
+    description:
+      "Admins manage users, investments and expenses. Standard users get read-only visibility.",
   },
 ];
 
@@ -120,11 +126,11 @@ async function handleSubmit(e: React.FormEvent) {
 
         <div className="max-w-xl">
           <h2 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-            Every expense, tied to real capital.
+            One capital pool. Every rupee accounted for.
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-brand-foreground/75 sm:text-base">
-            Track investments, manage expenses against remaining balance, and give finance leaders a
-            live view of where the money went — with clear financial visibility.
+            Record who invested what, log shared expenses by category, and see the remaining
+            balance update the moment either side changes.
           </p>
 
           <div className="mt-8 space-y-3">
@@ -148,7 +154,7 @@ async function handleSubmit(e: React.FormEvent) {
         </div>
 
         <p className="text-xs text-brand-foreground/55">
-          © 2026 Ledgerly. Investments − Expenses = Remaining balance.
+          © 2026 Ledgerly. One shared balance — Investments − Expenses.
         </p>
       </section>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/field";
+import { ConfirmAction } from "@/components/confirm-action";
 import {
   Select,
   SelectContent,
@@ -53,6 +54,7 @@ export function UserFormDialog({
 }) {
   const [values, setValues] = useState<UserFormValues>(empty);
   const [errors, setErrors] = useState<Errors>({});
+  const [pendingSubmit, setPendingSubmit] = useState<UserFormValues | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -98,16 +100,29 @@ export function UserFormDialog({
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
-    onSubmit({ ...values, fullName: values.fullName.trim(), email: values.email.trim() });
+
+    const submitted: UserFormValues = {
+      ...values,
+      fullName: values.fullName.trim(),
+      email: values.email.trim(),
+    };
+
+    if (editing) {
+      setPendingSubmit(submitted);
+    } else {
+      onSubmit(submitted);
+    }
   }
 
   return (
+    <Fragment>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit user" : "Add user"}</DialogTitle>
           <DialogDescription>
-            Standard users can sign in with these credentials and see only their own data.
+            Standard users sign in with these credentials to track their own investments and view
+            the shared expense list.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,5 +188,18 @@ export function UserFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ConfirmAction
+      open={pendingSubmit !== null}
+      onOpenChange={(open) => !open && setPendingSubmit(null)}
+      title="Save these changes?"
+      description="The user's account details will be updated immediately."
+      confirmLabel="Save changes"
+      onConfirm={() => {
+        if (pendingSubmit) onSubmit(pendingSubmit);
+        setPendingSubmit(null);
+      }}
+    />
+    </Fragment>
   );
 }
