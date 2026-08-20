@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -61,7 +60,6 @@ function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -199,24 +197,6 @@ async function handleSubmit(e: React.FormEvent) {
                   {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Checkbox
-                  checked={remember}
-                  onCheckedChange={(v) => setRemember(v === true)}
-                  aria-label="Remember me"
-                />
-                Remember me
-              </label>
-              <button
-                type="button"
-                onClick={() => toast.info("Password recovery is handled by your administrator.")}
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                Forgot password?
-              </button>
             </div>
 
             {error ? (
