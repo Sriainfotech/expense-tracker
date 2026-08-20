@@ -78,13 +78,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Expense amount must be greater than 0.")
         return amount
 
-class StandardExpenseCreateSerializer(ExpenseSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    def create(self, validated_data):
-        validated_data["user"] = self.context["request"].user
-        return super().create(validated_data)
-
 class UserFinancialSummarySerializer(serializers.Serializer):
     user = UserMiniSerializer()
     total_investment = serializers.DecimalField(max_digits=14, decimal_places=2)

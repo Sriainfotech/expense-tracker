@@ -6,9 +6,9 @@ from rest_framework.response import Response
 from accounts.models import User
 from accounts.permissions import IsAdminRole, IsStandardUser
 from .models import Investment, Expense, ExpenseCategory
-from .permissions import IsAdminOrReadOnlyOwner, IsAdminOrOwnerExpenseCreate
+from .permissions import IsAdminOrReadOnlyOwner
 from .serializers import (
-    InvestmentSerializer, ExpenseSerializer, StandardExpenseCreateSerializer,
+    InvestmentSerializer, ExpenseSerializer,
     UserMiniSerializer, ExpenseCategorySerializer,
 )
 from .services import user_financial_summary, overall_financial_summary
@@ -76,7 +76,7 @@ class InvestmentViewSet(viewsets.ModelViewSet):
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrOwnerExpenseCreate]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnlyOwner]
     filterset_fields = ["user", "category", "payment_method", "status", "expense_date"]
     search_fields = ["category", "description", "payment_method", "user__full_name", "user__email"]
     ordering_fields = ["amount", "expense_date", "created_at"]
@@ -88,14 +88,9 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             return qs.all()
         return qs.filter(user=self.request.user)
 
-    def get_serializer_class(self):
-        if self.request.user.role == User.Role.STANDARD and self.request.method == "POST":
-            return StandardExpenseCreateSerializer
-        return ExpenseSerializer
-
     def create(self, request, *args, **kwargs):
-        if request.user.role == User.Role.STANDARD:
-            return super().create(request, *args, **kwargs)
+        if request.user.role != User.Role.ADMIN:
+            return Response({"detail": "Standard users cannot create expenses."}, status=http_status.HTTP_403_FORBIDDEN)
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
@@ -112,12 +107,6 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         if request.user.role != User.Role.ADMIN:
             return Response({"detail": "Standard users cannot delete expenses."}, status=http_status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
-        if self.request.user.role == User.Role.STANDARD:
-            serializer.save(user=self.request.user)
-        else:
-            serializer.save()
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def summary(self, request):

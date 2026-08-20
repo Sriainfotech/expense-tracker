@@ -1,17 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { PiggyBank, Plus, Receipt, Scale } from "lucide-react";
-import { toast } from "sonner";
+import { PiggyBank, Receipt, Scale } from "lucide-react";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
 import { SummaryCard } from "@/components/summary-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
-import { ConfirmDelete } from "@/components/confirm-delete";
 import { DetailDialog } from "@/components/detail-dialog";
-import { ExpenseFormDialog } from "@/components/expense-form-dialog";
 import { RowActions } from "@/routes/admin.users.$userId";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,12 +26,12 @@ export const Route = createFileRoute("/user/expenses")({
       { title: "My expenses · Ledgerly" },
       {
         name: "description",
-        content: "Record what you spend and watch your remaining balance update instantly.",
+        content: "Read-only history of the expenses recorded against your account.",
       },
       { property: "og:title", content: "My expenses · Ledgerly" },
       {
         property: "og:description",
-        content: "Record what you spend and watch your remaining balance update instantly.",
+        content: "Read-only history of the expenses recorded against your account.",
       },
     ],
   }),
@@ -47,22 +43,11 @@ export const Route = createFileRoute("/user/expenses")({
 });
 
 function UserExpenses() {
-  const {
-    currentUser,
-    expenses,
-    expenseCategories,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    financialsFor,
-  } = useStore();
+  const { currentUser, expenses, expenseCategories, financialsFor } = useStore();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Expense | null>(null);
   const [viewing, setViewing] = useState<Expense | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
   const userId = currentUser?.id ?? "";
   const filtered = useMemo(
@@ -90,17 +75,6 @@ function UserExpenses() {
       role="standard_user"
       title="My Expenses"
       subtitle={`${formatINR(f.totalExpenses)} spent · ${formatINR(f.remainingBalance)} remaining`}
-      actions={
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="size-4" />
-          Add Expense
-        </Button>
-      }
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
@@ -184,21 +158,14 @@ function UserExpenses() {
                     <StatusBadge status={exp.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <RowActions
-                      onView={() => setViewing(exp)}
-                      onEdit={() => {
-                        setEditing(exp);
-                        setFormOpen(true);
-                      }}
-                      onDelete={() => setDeleteTarget(exp)}
-                    />
+                    <RowActions onView={() => setViewing(exp)} />
                   </td>
                 </tr>
               ))}
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
-                    No expenses yet — add your first one.
+                    No expenses recorded yet.
                   </td>
                 </tr>
               ) : null}
@@ -208,27 +175,6 @@ function UserExpenses() {
 
         <Pager page={page} pageCount={pageCount} total={filtered.length} onPage={setPage} />
       </div>
-
-      <ExpenseFormDialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
-        lockedUserId={currentUser.id}
-        editing={editing}
-        onSubmit={(values) => {
-          if (editing) {
-            updateExpense(editing.id, values);
-            toast.success("Expense updated");
-          } else {
-            addExpense({ ...values, userId: currentUser.id });
-            toast.success("Expense added — remaining balance updated");
-          }
-          setFormOpen(false);
-          setEditing(null);
-        }}
-      />
 
       <DetailDialog
         open={viewing !== null}
@@ -251,17 +197,6 @@ function UserExpenses() {
         }
       />
 
-      <ConfirmDelete
-        open={deleteTarget !== null}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete this expense?"
-        description="Your remaining balance will increase accordingly."
-        onConfirm={() => {
-          if (deleteTarget) deleteExpense(deleteTarget.id);
-          setDeleteTarget(null);
-          toast.success("Expense deleted");
-        }}
-      />
     </AppShell>
   );
 }
