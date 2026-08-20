@@ -155,14 +155,16 @@ export function AppShell({
           </button>
         </nav>
 
-        <header className="flex flex-wrap items-center gap-3 bg-card/90 px-4 py-4 backdrop-blur sm:px-6">
-          <div className="min-w-0 flex-1">
+        <header className="flex flex-col gap-3 bg-card/90 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="min-w-0">
             <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">{title}</h1>
             {subtitle ? (
-              <p className="truncate text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
+              <p className="text-xs text-muted-foreground sm:truncate sm:text-sm">{subtitle}</p>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">{actions}</div>
+          {actions ? (
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>
+          ) : null}
         </header>
         <main className="flex-1 space-y-6 px-4 py-6 sm:px-6">{children}</main>
       </div>
