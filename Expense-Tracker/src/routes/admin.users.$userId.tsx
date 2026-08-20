@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Eye, Pencil, PiggyBank, Receipt, Scale, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, PiggyBank, Plus, Receipt, Scale, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -46,6 +46,7 @@ function UserDetail() {
     financialsFor,
     updateInvestment,
     deleteInvestment,
+    addExpense,
     updateExpense,
     deleteExpense,
   } = useStore();
@@ -54,6 +55,7 @@ function UserDetail() {
   const [editInvestment, setEditInvestment] = useState<Investment | null>(null);
   const [viewInvestment, setViewInvestment] = useState<Investment | null>(null);
   const [deleteInvestmentTarget, setDeleteInvestmentTarget] = useState<Investment | null>(null);
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [viewExpense, setViewExpense] = useState<Expense | null>(null);
   const [deleteExpenseTarget, setDeleteExpenseTarget] = useState<Expense | null>(null);
@@ -169,8 +171,18 @@ function UserDetail() {
       </section>
 
       <section className="rounded-xl border border-border bg-card shadow-card">
-        <div className="border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-bold">Expense History</h2>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditExpense(null);
+              setExpenseFormOpen(true);
+            }}
+          >
+            <Plus className="size-4" />
+            Add Expense
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-sm">
@@ -205,7 +217,10 @@ function UserDetail() {
                   <td className="px-4 py-3">
                     <RowActions
                       onView={() => setViewExpense(exp)}
-                      onEdit={() => setEditExpense(exp)}
+                      onEdit={() => {
+                        setEditExpense(exp);
+                        setExpenseFormOpen(true);
+                      }}
                       onDelete={() => setDeleteExpenseTarget(exp)}
                     />
                   </td>
@@ -236,14 +251,24 @@ function UserDetail() {
       />
 
       <ExpenseFormDialog
-        open={editExpense !== null}
-        onOpenChange={(open) => !open && setEditExpense(null)}
+        open={expenseFormOpen}
+        onOpenChange={(open) => {
+          setExpenseFormOpen(open);
+          if (!open) setEditExpense(null);
+        }}
+        lockedUserId={user.id}
         showStatus
         editing={editExpense}
         onSubmit={(values) => {
-          if (editExpense) updateExpense(editExpense.id, values);
+          if (editExpense) {
+            updateExpense(editExpense.id, values);
+            toast.success("Expense updated");
+          } else {
+            addExpense({ ...values, userId: user.id });
+            toast.success("Expense added and remaining balance recalculated");
+          }
+          setExpenseFormOpen(false);
           setEditExpense(null);
-          toast.success("Expense updated");
         }}
       />
 
