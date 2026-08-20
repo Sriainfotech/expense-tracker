@@ -238,6 +238,7 @@ function UserDetail() {
       <ExpenseFormDialog
         open={editExpense !== null}
         onOpenChange={(open) => !open && setEditExpense(null)}
+        users={users.filter((u) => u.role === "standard_user")}
         showStatus
         editing={editExpense}
         onSubmit={(values) => {
