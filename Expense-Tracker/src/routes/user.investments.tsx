@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
-import { DetailDialog } from "@/components/detail-dialog";
+import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { RowActions } from "@/routes/admin.users.$userId";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
-import type { Investment } from "@/lib/types";
 
 export const Route = createFileRoute("/user/investments")({
   head: () => ({
@@ -37,7 +36,7 @@ function UserInvestments() {
   const { currentUser, investments } = useStore();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [viewing, setViewing] = useState<Investment | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const userId = currentUser?.id ?? "";
   const filtered = useMemo(
@@ -92,20 +91,40 @@ function UserInvestments() {
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((inv) => (
-                <tr key={inv.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
-                  <td className="px-4 py-3 font-semibold">{inv.source}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
-                    {formatINR(inv.amount)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(inv.date)}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={inv.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <RowActions onView={() => setViewing(inv)} />
-                  </td>
-                </tr>
+                <Fragment key={inv.id}>
+                  <tr className="hover:bg-muted/40">
+                    <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
+                    <td className="px-4 py-3 font-semibold">{inv.source}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-primary">
+                      {formatINR(inv.amount)}
+                    </td>
+                    <td className="px-4 py-3">{formatDate(inv.date)}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={inv.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <RowActions
+                        expanded={expandedId === inv.id}
+                        onView={() => setExpandedId((id) => (id === inv.id ? null : inv.id))}
+                      />
+                    </td>
+                  </tr>
+                  {expandedId === inv.id ? (
+                    <DetailAccordionRow
+                      colSpan={6}
+                      description="Investments are recorded by your administrator."
+                      rows={[
+                        { label: "Investment ID", value: inv.id },
+                        { label: "Investor / Source", value: inv.source },
+                        { label: "Amount", value: formatINR(inv.amount) },
+                        { label: "Date", value: formatDate(inv.date) },
+                        { label: "Description", value: inv.description || "—" },
+                        { label: "Status", value: inv.status },
+                        { label: "Created At", value: formatDate(inv.createdAt) },
+                      ]}
+                    />
+                  ) : null}
+                </Fragment>
               ))}
               {rows.length === 0 ? (
                 <tr>
@@ -121,25 +140,6 @@ function UserInvestments() {
         <Pager page={page} pageCount={pageCount} total={filtered.length} onPage={setPage} />
       </div>
 
-      <DetailDialog
-        open={viewing !== null}
-        onOpenChange={(open) => !open && setViewing(null)}
-        title="Investment details"
-        description="Investments are recorded by your administrator."
-        rows={
-          viewing
-            ? [
-                { label: "Investment ID", value: viewing.id },
-                { label: "Investor / Source", value: viewing.source },
-                { label: "Amount", value: formatINR(viewing.amount) },
-                { label: "Date", value: formatDate(viewing.date) },
-                { label: "Description", value: viewing.description || "—" },
-                { label: "Status", value: viewing.status },
-                { label: "Created At", value: formatDate(viewing.createdAt) },
-              ]
-            : []
-        }
-      />
     </AppShell>
   );
 }

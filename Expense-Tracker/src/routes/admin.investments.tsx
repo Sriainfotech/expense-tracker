@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -7,7 +7,7 @@ import { AppShell, RequireRole } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { DetailDialog } from "@/components/detail-dialog";
+import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { InvestmentFormDialog } from "@/components/investment-form-dialog";
 import { RowActions } from "@/routes/admin.users.$userId";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ function AdminInvestments() {
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Investment | null>(null);
-  const [viewing, setViewing] = useState<Investment | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null);
 
   const filtered = useMemo(
@@ -142,28 +142,47 @@ function AdminInvestments() {
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((inv) => (
-                <tr key={inv.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
-                  <td className="px-4 py-3 font-semibold">{userName(inv.userId)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{inv.source}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
-                    {formatINR(inv.amount)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(inv.date)}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={inv.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <RowActions
-                      onView={() => setViewing(inv)}
-                      onEdit={() => {
-                        setEditing(inv);
-                        setFormOpen(true);
-                      }}
-                      onDelete={() => setDeleteTarget(inv)}
+                <Fragment key={inv.id}>
+                  <tr className="hover:bg-muted/40">
+                    <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
+                    <td className="px-4 py-3 font-semibold">{userName(inv.userId)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{inv.source}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-primary">
+                      {formatINR(inv.amount)}
+                    </td>
+                    <td className="px-4 py-3">{formatDate(inv.date)}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={inv.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <RowActions
+                        expanded={expandedId === inv.id}
+                        onView={() => setExpandedId((id) => (id === inv.id ? null : inv.id))}
+                        onEdit={() => {
+                          setEditing(inv);
+                          setFormOpen(true);
+                        }}
+                        onDelete={() => setDeleteTarget(inv)}
+                      />
+                    </td>
+                  </tr>
+                  {expandedId === inv.id ? (
+                    <DetailAccordionRow
+                      colSpan={7}
+                      description={userName(inv.userId)}
+                      rows={[
+                        { label: "Investment ID", value: inv.id },
+                        { label: "User", value: userName(inv.userId) },
+                        { label: "Investor / Source", value: inv.source },
+                        { label: "Amount", value: formatINR(inv.amount) },
+                        { label: "Date", value: formatDate(inv.date) },
+                        { label: "Description", value: inv.description || "—" },
+                        { label: "Status", value: inv.status },
+                        { label: "Created At", value: formatDate(inv.createdAt) },
+                      ]}
                     />
-                  </td>
-                </tr>
+                  ) : null}
+                </Fragment>
               ))}
               {rows.length === 0 ? (
                 <tr>
@@ -198,27 +217,6 @@ function AdminInvestments() {
           setFormOpen(false);
           setEditing(null);
         }}
-      />
-
-      <DetailDialog
-        open={viewing !== null}
-        onOpenChange={(open) => !open && setViewing(null)}
-        title="Investment details"
-        description={viewing ? userName(viewing.userId) : ""}
-        rows={
-          viewing
-            ? [
-                { label: "Investment ID", value: viewing.id },
-                { label: "User", value: userName(viewing.userId) },
-                { label: "Investor / Source", value: viewing.source },
-                { label: "Amount", value: formatINR(viewing.amount) },
-                { label: "Date", value: formatDate(viewing.date) },
-                { label: "Description", value: viewing.description || "—" },
-                { label: "Status", value: viewing.status },
-                { label: "Created At", value: formatDate(viewing.createdAt) },
-              ]
-            : []
-        }
       />
 
       <ConfirmDelete

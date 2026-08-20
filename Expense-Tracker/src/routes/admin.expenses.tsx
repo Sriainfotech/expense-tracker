@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { PiggyBank, Plus, Receipt, Scale } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,7 +8,7 @@ import { SummaryCard } from "@/components/summary-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { DetailDialog } from "@/components/detail-dialog";
+import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { ExpenseFormDialog } from "@/components/expense-form-dialog";
 import { RowActions } from "@/routes/admin.users.$userId";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ function AdminExpenses() {
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
-  const [viewing, setViewing] = useState<Expense | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
 
   const filtered = useMemo(
@@ -196,29 +196,47 @@ function AdminExpenses() {
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((exp) => (
-                <tr key={exp.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-mono text-xs">{exp.id}</td>
-                  <td className="px-4 py-3 font-semibold">{exp.category}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{exp.description || "—"}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-warning">
-                    {formatINR(exp.amount)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(exp.date)}</td>
-                  <td className="px-4 py-3">{exp.paymentMethod}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={exp.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <RowActions
-                      onView={() => setViewing(exp)}
-                      onEdit={() => {
-                        setEditing(exp);
-                        setFormOpen(true);
-                      }}
-                      onDelete={() => setDeleteTarget(exp)}
+                <Fragment key={exp.id}>
+                  <tr className="hover:bg-muted/40">
+                    <td className="px-4 py-3 font-mono text-xs">{exp.id}</td>
+                    <td className="px-4 py-3 font-semibold">{exp.category}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{exp.description || "—"}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-warning">
+                      {formatINR(exp.amount)}
+                    </td>
+                    <td className="px-4 py-3">{formatDate(exp.date)}</td>
+                    <td className="px-4 py-3">{exp.paymentMethod}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={exp.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <RowActions
+                        expanded={expandedId === exp.id}
+                        onView={() => setExpandedId((id) => (id === exp.id ? null : exp.id))}
+                        onEdit={() => {
+                          setEditing(exp);
+                          setFormOpen(true);
+                        }}
+                        onDelete={() => setDeleteTarget(exp)}
+                      />
+                    </td>
+                  </tr>
+                  {expandedId === exp.id ? (
+                    <DetailAccordionRow
+                      colSpan={8}
+                      rows={[
+                        { label: "Expense ID", value: exp.id },
+                        { label: "Category", value: exp.category },
+                        { label: "Description", value: exp.description || "—" },
+                        { label: "Amount", value: formatINR(exp.amount) },
+                        { label: "Date", value: formatDate(exp.date) },
+                        { label: "Payment Method", value: exp.paymentMethod },
+                        { label: "Status", value: exp.status },
+                        { label: "Created At", value: formatDate(exp.createdAt) },
+                      ]}
                     />
-                  </td>
-                </tr>
+                  ) : null}
+                </Fragment>
               ))}
               {rows.length === 0 ? (
                 <tr>
@@ -253,27 +271,6 @@ function AdminExpenses() {
           setFormOpen(false);
           setEditing(null);
         }}
-      />
-
-      <DetailDialog
-        open={viewing !== null}
-        onOpenChange={(open) => !open && setViewing(null)}
-        title="Expense details"
-        description={viewing ? viewing.category : ""}
-        rows={
-          viewing
-            ? [
-                { label: "Expense ID", value: viewing.id },
-                { label: "Category", value: viewing.category },
-                { label: "Description", value: viewing.description || "—" },
-                { label: "Amount", value: formatINR(viewing.amount) },
-                { label: "Date", value: formatDate(viewing.date) },
-                { label: "Payment Method", value: viewing.paymentMethod },
-                { label: "Status", value: viewing.status },
-                { label: "Created At", value: formatDate(viewing.createdAt) },
-              ]
-            : []
-        }
       />
 
       <ConfirmDelete

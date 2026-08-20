@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ArrowLeft, Eye, Pencil, PiggyBank, Receipt, Scale, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -7,11 +7,12 @@ import { AppShell, RequireRole } from "@/components/app-shell";
 import { SummaryCard } from "@/components/summary-card";
 import { StatusBadge } from "@/components/status-badge";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { DetailDialog } from "@/components/detail-dialog";
+import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { InvestmentFormDialog } from "@/components/investment-form-dialog";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Investment } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/users/$userId")({
@@ -42,7 +43,7 @@ function UserDetail() {
 
   const user = users.find((u) => u.id === userId);
   const [editInvestment, setEditInvestment] = useState<Investment | null>(null);
-  const [viewInvestment, setViewInvestment] = useState<Investment | null>(null);
+  const [expandedInvestmentId, setExpandedInvestmentId] = useState<string | null>(null);
   const [deleteInvestmentTarget, setDeleteInvestmentTarget] = useState<Investment | null>(null);
 
   if (!user) {
@@ -120,25 +121,44 @@ function UserDetail() {
             </thead>
             <tbody className="divide-y divide-border">
               {userInvestments.map((inv) => (
-                <tr key={inv.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
-                    {formatINR(inv.amount)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(inv.date)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{inv.description || "—"}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={inv.status} />
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(inv.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <RowActions
-                      onView={() => setViewInvestment(inv)}
-                      onEdit={() => setEditInvestment(inv)}
-                      onDelete={() => setDeleteInvestmentTarget(inv)}
+                <Fragment key={inv.id}>
+                  <tr className="hover:bg-muted/40">
+                    <td className="px-4 py-3 font-mono text-xs">{inv.id}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-primary">
+                      {formatINR(inv.amount)}
+                    </td>
+                    <td className="px-4 py-3">{formatDate(inv.date)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{inv.description || "—"}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={inv.status} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDate(inv.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      <RowActions
+                        expanded={expandedInvestmentId === inv.id}
+                        onView={() =>
+                          setExpandedInvestmentId((id) => (id === inv.id ? null : inv.id))
+                        }
+                        onEdit={() => setEditInvestment(inv)}
+                        onDelete={() => setDeleteInvestmentTarget(inv)}
+                      />
+                    </td>
+                  </tr>
+                  {expandedInvestmentId === inv.id ? (
+                    <DetailAccordionRow
+                      colSpan={7}
+                      rows={[
+                        { label: "Investment ID", value: inv.id },
+                        { label: "Investor / Source", value: inv.source },
+                        { label: "Amount", value: formatINR(inv.amount) },
+                        { label: "Date", value: formatDate(inv.date) },
+                        { label: "Description", value: inv.description || "—" },
+                        { label: "Status", value: inv.status },
+                        { label: "Created At", value: formatDate(inv.createdAt) },
+                      ]}
                     />
-                  </td>
-                </tr>
+                  ) : null}
+                </Fragment>
               ))}
               {userInvestments.length === 0 ? (
                 <tr>
@@ -164,26 +184,6 @@ function UserDetail() {
         }}
       />
 
-      <DetailDialog
-        open={viewInvestment !== null}
-        onOpenChange={(open) => !open && setViewInvestment(null)}
-        title="Investment details"
-        description={`Belongs to ${user.fullName}`}
-        rows={
-          viewInvestment
-            ? [
-                { label: "Investment ID", value: viewInvestment.id },
-                { label: "Investor / Source", value: viewInvestment.source },
-                { label: "Amount", value: formatINR(viewInvestment.amount) },
-                { label: "Date", value: formatDate(viewInvestment.date) },
-                { label: "Description", value: viewInvestment.description || "—" },
-                { label: "Status", value: viewInvestment.status },
-                { label: "Created At", value: formatDate(viewInvestment.createdAt) },
-              ]
-            : []
-        }
-      />
-
       <ConfirmDelete
         open={deleteInvestmentTarget !== null}
         onOpenChange={(open) => !open && setDeleteInvestmentTarget(null)}
@@ -200,17 +200,27 @@ function UserDetail() {
 }
 
 export function RowActions({
+  expanded,
   onView,
   onEdit,
   onDelete,
 }: {
+  /** Whether the inline detail accordion for this row is currently open. */
+  expanded?: boolean;
   onView: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button variant="ghost" size="icon" aria-label="View record" onClick={onView}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={expanded ? "Hide details" : "View details"}
+        aria-expanded={expanded}
+        className={cn(expanded && "bg-accent text-accent-foreground")}
+        onClick={onView}
+      >
         <Eye className="size-4" />
       </Button>
       {onEdit ? (
