@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
-import { PiggyBank, Receipt, Scale } from "lucide-react";
+import { Download, PiggyBank, Receipt, Scale } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
 import { SummaryCard } from "@/components/summary-card";
@@ -8,6 +9,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
 import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { RowActions } from "@/routes/admin.users.$userId";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
+import { exportExpensesToPdf } from "@/lib/export-pdf";
 
 export const Route = createFileRoute("/user/expenses")({
   head: () => ({
@@ -76,6 +79,24 @@ function UserExpenses() {
       role="standard_user"
       title="Expenses"
       subtitle={`${formatINR(f.totalExpenses)} company-wide · ${formatINR(f.remainingBalance)} remaining`}
+      actions={
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportExpensesToPdf({
+              scopeLabel: currentUser.fullName,
+              totalInvestment: f.totalInvestment,
+              totalExpenses: f.totalExpenses,
+              remainingBalance: f.remainingBalance,
+              expenses: filtered,
+            });
+            toast.success("Expense report downloaded");
+          }}
+        >
+          <Download className="size-4" />
+          Export PDF
+        </Button>
+      }
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard

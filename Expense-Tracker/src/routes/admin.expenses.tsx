@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
-import { PiggyBank, Plus, Receipt, Scale } from "lucide-react";
+import { Download, PiggyBank, Plus, Receipt, Scale } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
+import { exportExpensesToPdf } from "@/lib/export-pdf";
 import type { Expense } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/expenses")({
@@ -99,15 +100,33 @@ function AdminExpenses() {
       title="Expenses"
       subtitle={`${filtered.length} records · ${formatINR(total)} spent`}
       actions={
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="size-4" />
-          Add Expense
-        </Button>
+        <>
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportExpensesToPdf({
+                scopeLabel: "Company-wide",
+                totalInvestment: t.totalInvestment,
+                totalExpenses: t.totalExpenses,
+                remainingBalance: t.remainingBalance,
+                expenses: filtered,
+              });
+              toast.success("Expense report downloaded");
+            }}
+          >
+            <Download className="size-4" />
+            Export PDF
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="size-4" />
+            Add Expense
+          </Button>
+        </>
       }
     >
       <div className="grid gap-3 sm:grid-cols-3">
