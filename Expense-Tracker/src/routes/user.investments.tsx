@@ -1,14 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
+import { Hash, PiggyBank, TrendingUp, X } from "lucide-react";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
+import { SummaryCard } from "@/components/summary-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Pager, paginate } from "@/components/pager";
 import { DetailAccordionRow } from "@/components/detail-accordion-row";
 import { RowActions } from "@/routes/admin.users.$userId";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
+import { RECORD_STATUSES } from "@/lib/types";
 
 export const Route = createFileRoute("/user/investments")({
   head: () => ({
@@ -35,8 +46,22 @@ export const Route = createFileRoute("/user/investments")({
 function UserInvestments() {
   const { currentUser, investments } = useStore();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const filtersActive =
+    search.trim() !== "" || statusFilter !== "all" || dateFrom !== "" || dateTo !== "";
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  }
 
   const userId = currentUser?.id ?? "";
   const filtered = useMemo(
@@ -45,16 +70,20 @@ function UserInvestments() {
         .filter((inv) => inv.userId === userId)
         .filter((inv) => {
           const q = search.trim().toLowerCase();
-          return (
-            !q || inv.source.toLowerCase().includes(q) || inv.description.toLowerCase().includes(q)
-          );
+          const matchesQuery =
+            !q || inv.source.toLowerCase().includes(q) || inv.description.toLowerCase().includes(q);
+          const matchesStatus = statusFilter === "all" || inv.status === statusFilter;
+          const matchesFrom = !dateFrom || inv.date >= dateFrom;
+          const matchesTo = !dateTo || inv.date <= dateTo;
+          return matchesQuery && matchesStatus && matchesFrom && matchesTo;
         })
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [investments, userId, search],
+    [investments, userId, search, statusFilter, dateFrom, dateTo],
   );
 
   const { rows, pageCount } = paginate(filtered, page);
   const total = filtered.reduce((sum, inv) => sum + inv.amount, 0);
+  const average = filtered.length > 0 ? total / filtered.length : 0;
 
   if (!currentUser) return null;
 
@@ -64,8 +93,30 @@ function UserInvestments() {
       title="My Investments"
       subtitle={`${filtered.length} records · ${formatINR(total)} allocated to you`}
     >
+      <div className="grid gap-3 sm:grid-cols-3">
+        <SummaryCard
+          label="Total Investment"
+          value={formatINR(total)}
+          hint={filtersActive ? "Filtered total" : "All your investments"}
+          icon={PiggyBank}
+          tone="investment"
+        />
+        <SummaryCard
+          label="Number of Investments"
+          value={String(filtered.length)}
+          hint={filtersActive ? "Matching current filters" : "Total records"}
+          icon={Hash}
+        />
+        <SummaryCard
+          label="Average Investment"
+          value={formatINR(average)}
+          hint={filtersActive ? "Across the filtered set" : "Across all records"}
+          icon={TrendingUp}
+        />
+      </div>
+
       <div className="rounded-xl border border-border bg-card shadow-card">
-        <div className="border-b border-border p-4">
+        <div className="flex flex-wrap gap-3 border-b border-border p-4">
           <Input
             value={search}
             onChange={(e) => {
@@ -75,6 +126,54 @@ function UserInvestments() {
             placeholder="Search investments"
             className="max-w-xs"
           />
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {RECORD_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
+              className="w-40"
+              aria-label="From date"
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
+              className="w-40"
+              aria-label="To date"
+            />
+          </div>
+          {filtersActive ? (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="size-4" />
+              Clear filters
+            </Button>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">

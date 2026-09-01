@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
-import { Download, PiggyBank, Receipt, Scale } from "lucide-react";
+import { Download, PiggyBank, Receipt, Scale, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell, RequireRole } from "@/components/app-shell";
@@ -21,6 +21,7 @@ import {
 import { useStore } from "@/lib/store";
 import { formatDate, formatINR } from "@/lib/format";
 import { exportExpensesToPdf } from "@/lib/export-pdf";
+import { RECORD_STATUSES } from "@/lib/types";
 
 export const Route = createFileRoute("/user/expenses")({
   head: () => ({
@@ -48,8 +49,27 @@ function UserExpenses() {
   const { currentUser, expenses, expenseCategories, financialsFor } = useStore();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const filtersActive =
+    search.trim() !== "" ||
+    categoryFilter !== "all" ||
+    statusFilter !== "all" ||
+    dateFrom !== "" ||
+    dateTo !== "";
+
+  function clearFilters() {
+    setSearch("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  }
 
   // Expenses are shared/company-wide — everyone sees the same list.
   const filtered = useMemo(
@@ -63,31 +83,41 @@ function UserExpenses() {
             exp.description.toLowerCase().includes(q) ||
             exp.id.toLowerCase().includes(q);
           const matchesCategory = categoryFilter === "all" || exp.category === categoryFilter;
-          return matchesQuery && matchesCategory;
+          const matchesStatus = statusFilter === "all" || exp.status === statusFilter;
+          const matchesFrom = !dateFrom || exp.date >= dateFrom;
+          const matchesTo = !dateTo || exp.date <= dateTo;
+          return matchesQuery && matchesCategory && matchesStatus && matchesFrom && matchesTo;
         })
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [expenses, search, categoryFilter],
+    [expenses, search, categoryFilter, statusFilter, dateFrom, dateTo],
   );
 
   const { rows, pageCount } = paginate(filtered, page);
+  const filteredTotalExpenses = filtered.reduce((sum, exp) => sum + exp.amount, 0);
 
   if (!currentUser) return null;
   const f = financialsFor(currentUser.id);
+  // f.remainingBalance/f.totalExpenses are the true company-wide figures (all
+  // users' investments minus ALL expenses), so back out the overall
+  // investment total rather than using f.totalInvestment (which is only this
+  // user's personal contribution).
+  const overallInvestment = f.remainingBalance + f.totalExpenses;
+  const filteredRemainingBalance = overallInvestment - filteredTotalExpenses;
 
   return (
     <AppShell
       role="standard_user"
       title="Expenses"
-      subtitle={`${formatINR(f.totalExpenses)} company-wide · ${formatINR(f.remainingBalance)} remaining`}
+      subtitle={`${formatINR(filteredTotalExpenses)} ${filtersActive ? "filtered" : "company-wide"} · ${formatINR(filteredRemainingBalance)} remaining`}
       actions={
         <Button
           variant="outline"
           onClick={() => {
             exportExpensesToPdf({
-              scopeLabel: currentUser.fullName,
+              scopeLabel: filtersActive ? `${currentUser.fullName} (filtered)` : currentUser.fullName,
               totalInvestment: f.totalInvestment,
-              totalExpenses: f.totalExpenses,
-              remainingBalance: f.remainingBalance,
+              totalExpenses: filteredTotalExpenses,
+              remainingBalance: filteredRemainingBalance,
               expenses: filtered,
             });
             toast.success("Expense report downloaded");
@@ -102,18 +132,21 @@ function UserExpenses() {
         <SummaryCard
           label="Total Investment"
           value={formatINR(f.totalInvestment)}
+          hint="Your contribution, unaffected by filters"
           icon={PiggyBank}
           tone="investment"
         />
         <SummaryCard
           label="Total Expenses"
-          value={formatINR(f.totalExpenses)}
+          value={formatINR(filteredTotalExpenses)}
+          hint={filtersActive ? `${filtered.length} filtered records` : `${filtered.length} records`}
           icon={Receipt}
           tone="expense"
         />
         <SummaryCard
           label="Remaining Balance"
-          value={formatINR(f.remainingBalance)}
+          value={formatINR(filteredRemainingBalance)}
+          hint={filtersActive ? "Based on the filtered expenses" : "Company-wide figure"}
           icon={Scale}
           tone="balance"
         />
@@ -149,6 +182,54 @@ function UserExpenses() {
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {RECORD_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
+              className="w-40"
+              aria-label="From date"
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
+              className="w-40"
+              aria-label="To date"
+            />
+          </div>
+          {filtersActive ? (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="size-4" />
+              Clear filters
+            </Button>
+          ) : null}
         </div>
 
         <div className="overflow-x-auto">
